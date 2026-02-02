@@ -1,6 +1,9 @@
-ezdxf
-trimesh
+torch
+torchvision
 numpy
-pytest
-pyrender
+trimesh
 Pillow
+matplotlib
+ezdxf
+pyrender
+pytest
