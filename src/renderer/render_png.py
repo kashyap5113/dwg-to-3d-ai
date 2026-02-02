@@ -1,3 +1,6 @@
+import os
+os.environ["PYOPENGL_PLATFORM"] = "egl"
+
 import trimesh
 import pyrender
 import numpy as np
@@ -10,14 +13,11 @@ def render_png(obj_path, output_png):
 
     scene = pyrender.Scene(bg_color=[255, 255, 255, 255])
 
-    # If it's a PointCloud
     if isinstance(mesh, trimesh.points.PointCloud):
         points = mesh.vertices
-        colors = np.ones_like(points)  # white color
+        colors = np.ones_like(points)
         cloud = pyrender.Mesh.from_points(points, colors=colors)
         scene.add(cloud)
-
-    # If it's a normal mesh
     else:
         mesh = pyrender.Mesh.from_trimesh(mesh)
         scene.add(mesh)
