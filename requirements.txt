@@ -1,0 +1,4 @@
+ezdxf
+trimesh
+numpy
+pytest
