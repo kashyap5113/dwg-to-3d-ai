@@ -18,7 +18,11 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgl1-mesa-glx
+        sudo apt-get install -y \
+          libgl1 \
+          libegl1 \
+          mesa-utils \
+          xvfb
 
     - name: Install Python dependencies
       run: |
@@ -27,7 +31,7 @@ jobs:
 
     - name: Run pipeline
       run: |
-        python src/main.py
+        xvfb-run -a python src/main.py
 
     - name: Run tests
       run: |
