@@ -2,3 +2,5 @@ ezdxf
 trimesh
 numpy
 pytest
+pyrender
+Pillow
