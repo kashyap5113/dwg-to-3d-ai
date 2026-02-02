@@ -1,5 +1,9 @@
 import os
-os.environ["PYOPENGL_PLATFORM"] = "egl"
+import platform
+
+# Only force EGL in Linux (GitHub Actions)
+if platform.system() == "Linux":
+    os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 import trimesh
 import pyrender
@@ -15,8 +19,7 @@ def render_png(obj_path, output_png):
 
     if isinstance(mesh, trimesh.points.PointCloud):
         points = mesh.vertices
-        colors = np.ones_like(points)
-        cloud = pyrender.Mesh.from_points(points, colors=colors)
+        cloud = pyrender.Mesh.from_points(points)
         scene.add(cloud)
     else:
         mesh = pyrender.Mesh.from_trimesh(mesh)

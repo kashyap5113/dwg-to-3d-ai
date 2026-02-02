@@ -13,11 +13,19 @@ def geometry_to_3d(json_file):
             x1, y1, _ = item["start"]
             x2, y2, _ = item["end"]
             vertices.append([x1, y1, 0])
-            vertices.append([x2, y2, 1])  # fake Z
+            vertices.append([x2, y2, 1])
 
         elif item["type"] == "CIRCLE":
             cx, cy, _ = item["center"]
             r = item["radius"]
             vertices.append([cx, cy, r])
 
-    return np.array(vertices)
+    vertices = np.array(vertices)
+
+    # Center and normalize
+    center = vertices.mean(axis=0)
+    vertices = vertices - center
+    scale = vertices.max()
+    vertices = vertices / scale
+
+    return vertices
