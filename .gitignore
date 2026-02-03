@@ -14,3 +14,8 @@ uploads/
 # OS
 .DS_Store
 
+venv3d/
+__pycache__/
+outputs/
+uploads/
+.DS_Store
