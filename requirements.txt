@@ -1,9 +1,32 @@
-torch
-torchvision
+# Core math & arrays
 numpy
+
+# CAD parsing
+ezdxf
+
+# Geometry processing
+shapely
+
+# 3D mesh & rendering
 trimesh
+pyrender
 Pillow
 matplotlib
-ezdxf
-pyrender
+
+# Machine Learning
+scikit-learn
+xgboost
+joblib
+
+# Deep learning (future roadmap)
+torch
+torchvision
+
+# Testing
 pytest
+
+# File formats
+pygltflib
+
+# Utilities
+tqdm
