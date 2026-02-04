@@ -1,125 +1,120 @@
-# # import json
-# # import numpy as np
+
+# from shapely.geometry import Polygon, MultiPolygon, LineString
 
 
-# # def geometry_to_3d(json_file):
-# #     with open(json_file) as f:
-# #         data = json.load(f)
+# # ======================
+# # FLEXIBLE LAYER DEFINITIONS
+# # ======================
 
-# #     vertices = []
+# WALL_LAYERS = ["wall", "a-wall", "partition", "a-part"]
+# FLOOR_LAYERS = ["floor", "slab", "a-flor"]
+# DOOR_LAYERS = ["door", "a-door", "opening"]
+# WINDOW_LAYERS = ["window", "a-win", "glaz"]
 
-# #     for item in data:
 
-# #         if item["type"] == "LINE":
-# #             x1, y1, _ = item["start"]
-# #             x2, y2, _ = item["end"]
-# #             vertices.append([x1, y1, 0])
-# #             vertices.append([x2, y2, 1])
+# # ======================
+# # MAIN FUNCTION
+# # ======================
 
-# #         elif item["type"] in ["POLYLINE", "SPLINE"]:
-# #             for p in item["points"]:
-# #                 vertices.append([p[0], p[1], 0])
-
-# #         elif item["type"] == "CIRCLE":
-# #             cx, cy, _ = item["center"]
-# #             r = item["radius"]
-# #             vertices.append([cx + r, cy, 0])
-# #             vertices.append([cx - r, cy, 0])
-# #             vertices.append([cx, cy + r, 0])
-# #             vertices.append([cx, cy - r, 0])
-
-# #         elif item["type"] == "ARC":
-# #             cx, cy, _ = item["center"]
-# #             r = item["radius"]
-# #             vertices.append([cx + r, cy, 0])
-# #             vertices.append([cx - r, cy, 0])
-
-# #         elif item["type"] == "ELLIPSE":
-# #             cx, cy, _ = item["center"]
-# #             vertices.append([cx, cy, 0])
-
-# #     if len(vertices) == 0:
-# #         return None
-# #     def extract_walls_and_floors(entities):
-# #         walls = []
-# #         floors = []
-
-# #         for poly in entities["polylines"]:
-# #             if poly["closed"]:
-# #                 floors.append(poly["points"])
-# #             else:
-# #                 walls.append(poly["points"])
-
-# #         return {
-# #             "walls": walls,
-# #             "floors": floors
-# #         }
-
-# #     vertices = np.array(vertices, dtype=float)
-
-# #     # Center and normalize
-# #     center = vertices.mean(axis=0)
-# #     vertices = vertices - center
-
-# #     scale = np.max(np.abs(vertices))
-# #     if scale > 0:
-# #         vertices = vertices / scale
-
-# #     return vertices
-# # src/preprocessing/extract_geometry.py
-
-# # src/preprocessing/extract_geometry.py
-
-# def extract_walls_and_floors(entities):
+# def extract_walls_floors_doors_windows(entities):
 #     walls = []
 #     floors = []
+#     doors = []
+#     windows = []
 
 #     for item in entities:
 #         layer = item.get("layer", "").lower()
+#         etype = item.get("type")
 
-#         if "wall" in layer:
-#             if item["type"] == "LINE":
-#                 x1, y1, _ = item["start"]
-#                 x2, y2, _ = item["end"]
-#                 walls.append([(x1, y1), (x2, y2)])
+#         pts = []
 
-#             elif item["type"] == "POLYLINE":
-#                 points = [(p[0], p[1]) for p in item["points"]]
-#                 walls.append(points)
+#         if etype == "LINE":
+#             x1, y1, _ = item["start"]
+#             x2, y2, _ = item["end"]
+#             pts = [(x1, y1), (x2, y2)]
 
-#         elif "floor" in layer and item["type"] == "POLYLINE" and item.get("closed"):
-#             points = [(p[0], p[1]) for p in item["points"]]
-#             floors.append(points)
+#         elif etype in ["POLYLINE", "LWPOLYLINE", "SPLINE"]:
+#             pts = [(p[0], p[1]) for p in item.get("points", [])]
 
-#     return {"walls": walls, "floors": floors}
-# src/preprocessing/extract_geometry.py
+#         if len(pts) < 2:
+#             continue
 
-# src/preprocessing/extract_geometry.py
+#         # ------------------
+#         # WALLS (store layer info!)
+#         # ------------------
+#         if any(k in layer for k in WALL_LAYERS):
+#             walls.append({
+#                 "points": pts,
+#                 "layer": layer
+#             })
 
-# src/preprocessing/extract_geometry.py
+#         # ------------------
+#         # FLOORS
+#         # ------------------
+#         elif any(k in layer for k in FLOOR_LAYERS) and etype in ["POLYLINE", "LWPOLYLINE"]:
+#             if not item.get("closed", False):
+#                 continue
+#             try:
+#                 poly = Polygon(pts)
+#                 if poly.is_valid and poly.area > 10:
+#                     floors.append(list(poly.exterior.coords))
+#             except:
+#                 continue
 
-# src/preprocessing/extract_geometry.py
+#         # ------------------
+#         # DOORS
+#         # ------------------
+#         elif any(k in layer for k in DOOR_LAYERS):
+#             doors.append(pts)
 
-from shapely.geometry import Polygon, LineString, MultiPolygon
+#         # ------------------
+#         # WINDOWS
+#         # ------------------
+#         elif any(k in layer for k in WINDOW_LAYERS):
+#             windows.append(pts)
 
-# Layer rules (lowercase)
-WALL_LAYERS = ["a-wall"]
-FLOOR_LAYERS = ["a-flor"]
-DOOR_LAYERS = ["a-door"]
-WINDOW_LAYERS = ["a-glaz", "a-glaz-sill"]
+#     print("Filtered walls:", len(walls))
+#     print("Filtered floors:", len(floors))
+#     print("Filtered doors:", len(doors))
+#     print("Filtered windows:", len(windows))
+
+#     return {
+#         "walls": walls,
+#         "floors": floors,
+#         "doors": doors,
+#         "windows": windows
+#     }
+
+from shapely.geometry import Polygon, MultiPolygon
+
+
+def categorize_layer(layer_name: str):
+    layer = layer_name.lower()
+
+    if any(k in layer for k in ["wall", "a-wall", "partition", "a-part"]):
+        return "walls"
+    elif any(k in layer for k in ["floor", "slab", "a-flor"]):
+        return "floors"
+    elif any(k in layer for k in ["door", "a-door", "opening"]):
+        return "doors"
+    elif any(k in layer for k in ["window", "a-win", "glaz"]):
+        return "windows"
+    else:
+        return "ignore"
 
 
 def extract_walls_floors_doors_windows(entities):
     walls = []
-    floors = []
+    floors_raw = []
     doors = []
     windows = []
+    ignored = 0
 
     for item in entities:
-        layer = item.get("layer", "").lower()
+        layer = item.get("layer", "")
         etype = item["type"]
+        category = categorize_layer(layer)
 
-        # ---------- GET POINTS ----------
         pts = []
 
         if etype == "LINE":
@@ -133,51 +128,56 @@ def extract_walls_floors_doors_windows(entities):
         if len(pts) < 2:
             continue
 
-        # ---------- WALLS ----------
-        if layer in WALL_LAYERS:
-            walls.append(pts)
+        # ---------------- WALLS ----------------
+        if category == "walls":
+            walls.append({
+                "points": pts,
+                "layer": layer
+            })
 
-        # ---------- FLOORS (ONLY CLOSED POLYGONS) ----------
-        elif layer in FLOOR_LAYERS and etype in ["POLYLINE", "LWPOLYLINE"]:
-
-            if not item.get("closed", False):
-                continue
-
-            if len(pts) < 3:
-                continue
-
+        # ---------------- FLOORS ----------------
+        elif category == "floors" and etype in ["POLYLINE", "LWPOLYLINE"] and item.get("closed", False):
             try:
                 poly = Polygon(pts)
+                if poly.is_valid and poly.area > 10:
+                    floors_raw.append(poly)
+            except:
+                continue
 
-                if not poly.is_valid or poly.area < 5:
-                    continue
-
-                # Handle MultiPolygon safely
-                if isinstance(poly, MultiPolygon):
-                    for p in poly.geoms:
-                        floors.append(list(p.exterior.coords))
-                else:
-                    floors.append(list(poly.exterior.coords))
-
-            except Exception as e:
-                print("Floor polygon error:", e)
-
-        # ---------- DOORS ----------
-        elif layer in DOOR_LAYERS:
+        # ---------------- DOORS ----------------
+        elif category == "doors":
             doors.append(pts)
 
-        # ---------- WINDOWS ----------
-        elif layer in WINDOW_LAYERS:
+        # ---------------- WINDOWS ----------------
+        elif category == "windows":
             windows.append(pts)
 
+        else:
+            ignored += 1
+
+    # ---------------- FLOOR PLAN DETECTION ----------------
+    floor_boundary = []
+    rooms = []
+
+    if floors_raw:
+        largest_floor = max(floors_raw, key=lambda p: p.area)
+        floor_boundary = list(largest_floor.exterior.coords)
+
+        for poly in floors_raw:
+            if poly.area < largest_floor.area:
+                rooms.append(list(poly.exterior.coords))
+
     print("Filtered walls:", len(walls))
-    print("Filtered floors:", len(floors))
     print("Filtered doors:", len(doors))
     print("Filtered windows:", len(windows))
+    print("Floor boundary detected:", bool(floor_boundary))
+    print("Rooms detected:", len(rooms))
+    print("Ignored entities:", ignored)
 
     return {
         "walls": walls,
-        "floors": floors,
+        "floors": [floor_boundary] if floor_boundary else [],
+        "rooms": rooms,
         "doors": doors,
         "windows": windows
     }

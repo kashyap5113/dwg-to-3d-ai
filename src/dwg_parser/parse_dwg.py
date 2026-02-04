@@ -97,15 +97,25 @@ import json
 from pathlib import Path
 
 
+IGNORE_ENTITY_TYPES = ["TEXT", "MTEXT", "DIMENSION", "HATCH", "INSERT"]
+
+
 def parse_dwg(file_path):
     doc = ezdxf.readfile(file_path)
     msp = doc.modelspace()
 
     entities = []
     layers_found = set()
+    ignored_count = 0
 
     for e in msp:
         etype = e.dxftype()
+
+        # Ignore noise entities
+        if etype in IGNORE_ENTITY_TYPES:
+            ignored_count += 1
+            continue
+
         layer = e.dxf.layer.lower() if hasattr(e.dxf, "layer") else "default"
         layers_found.add(layer)
 
@@ -143,11 +153,12 @@ def parse_dwg(file_path):
                 "layer": layer
             })
 
-        # Ignore TEXT, DIMENSION, INSERT, HATCH, etc.
         else:
+            ignored_count += 1
             continue
 
     print("Parsed entities:", len(entities))
+    print("Ignored entities:", ignored_count)
     print("DXF Layers found:", layers_found)
 
     return entities
